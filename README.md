@@ -39,3 +39,41 @@ $ fastapi dev app\main.py
 ![Alt text](images/screenshot.png)
 
 
+## Example
+
+ ```python
+BASE_URL = "http://127.0.0.1:8000"
+circuit = "p10uhs0_1247--p10udt2190"
+
+response = requests.post(f'{BASE_URL}/powerflow/{circuit}', json={"outputs": ["voltage", "current"]})
+task_id = response.json()["task_id"]
+
+while True:
+    status_response = requests.get(f'{BASE_URL}/powerflow/status/{task_id}')
+    status_data = status_response.json()
+    if status_data.get('status') == 'PENDING':
+        time.sleep(2)
+    else:
+        break
+
+if status_data.get('status') == 'SUCCESS':  
+    result_response = requests.get(f'{BASE_URL}/powerflow/result/{circuit}')
+    result_data = result_response.json()
+
+node_data = []
+for row in result_data['nodes']:
+    node_data.append(json.loads(row))
+
+df = pd.DataFrame(node_data)
+print(df.head())
+```
+
+
+```console
+                    circuit  id        voltb        volta                      name        voltc
+0  p10uhs0_1247--p10udt2190   1  7415.543229  7415.543187  p10udt2190-p10uhs0_1247x  7415.543307
+1  p10uhs0_1247--p10udt2190   2  7415.543229  7415.543187              p10udt1519lv  7415.543307
+2  p10uhs0_1247--p10udt2190   3  7415.543229  7415.543187                p10ulv5448  7415.543307
+3  p10uhs0_1247--p10udt2190   4  7415.543229  7415.543187              p10udt1520lv  7415.543307
+4  p10uhs0_1247--p10udt2190   5  7415.543229  7415.543187                p10ulv5449  7415.543307
+```
