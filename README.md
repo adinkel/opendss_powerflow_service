@@ -4,52 +4,41 @@ API and distributed task queue for OpenDSS
 
 ## Dependencies
 
-* <a href="https://github.com/fastapi/fastapi" target="_blank"><code>fastapi</code></a> for api and docs
-* <a href="https://docs.celeryq.dev/en/stable/getting-started/first-steps-with-celery.html" target="_blank"><code>celery</code></a> distributed task queue
+* <a href="https://github.com/fastapi/fastapi" target="_blank"><code>fastapi</code></a>
+* <a href="https://github.com/celery/celery" target="_blank"><code>celery</code></a>
 
 ## Usage (running locally):
 
-Add database connection info to `app.database.settings`
-
-Start rabbitmq message broker (if the management plug-in is enabled: http://localhost:15672/):
-
- ```console
-$ rabbitmqctl start_app
-```
-
-Start a celery workers:
+Start celery workers:
  ```console
 $ python -m opendss_powerflow_service.app.workers.powerflow_worker
 $ python -m opendss_powerflow_service.app.workers.circuit_worker
 ```
 
-Celery Flower if applicable (http://localhost:5555/)
-
- ```console
-$ celery -A opendss_powerflow_service.app.core.celery_app --broker=amqp://guest:guest@localhost:5672/myvhost flower
-```
-
-FastAPI (http://127.0.0.1:8000/docs)
-python -m fastapi dev .\opendss_powerflow_service\app\main.py
+Start web server:
 
 ```console
 $ fastapi dev app\main.py
 ```
 
+Navigate to http://127.0.0.1:8000/docs/
+
 ![Alt text](images/screenshot.png)
 
 
-## Example
+## <a href="https://github.com/adinkel/opendss_powerflow_service/blob/main/examples/scripts/smartds_example.py"><code>Smart DS Example </code></a> 
+
+An example using distribution system models from <a href="https://www.nrel.gov/grid/smart-ds.html"><code>Smart DS </code></a> 
+
 
  ```python
-BASE_URL = "http://127.0.0.1:8000"
 circuit = "p10uhs0_1247--p10udt2190"
 
-response = requests.post(f'{BASE_URL}/powerflow/{circuit}', json={"outputs": ["voltage", "current"]})
+response = requests.post(f'http://127.0.0.1:8000/powerflow/{circuit}', json={"outputs": ["voltage", "current"]})
 task_id = response.json()["task_id"]
 
 while True:
-    status_response = requests.get(f'{BASE_URL}/powerflow/status/{task_id}')
+    status_response = requests.get(f'http://127.0.0.1:8000/powerflow/status/{task_id}')
     status_data = status_response.json()
     if status_data.get('status') == 'PENDING':
         time.sleep(2)
@@ -57,15 +46,15 @@ while True:
         break
 
 if status_data.get('status') == 'SUCCESS':  
-    result_response = requests.get(f'{BASE_URL}/powerflow/result/{circuit}')
+    result_response = requests.get(f'http://127.0.0.1:8000/powerflow/result/{circuit}')
     result_data = result_response.json()
 
-node_data = []
-for row in result_data['nodes']:
-    node_data.append(json.loads(row))
+    node_data = []
+    for row in result_data['nodes']:
+        node_data.append(json.loads(row))
 
-df = pd.DataFrame(node_data)
-print(df.head())
+    df = pd.DataFrame(node_data)
+    print(df.head())
 ```
 
 
